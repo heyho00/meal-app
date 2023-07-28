@@ -40,10 +40,16 @@ body {
     font-size: 1.5rem;
   }
 
-  .chat-container {
-    /* Adjust container height for mobile devices */
-    max-height: 60vh;
-  }
 
   /* Add more specific styles for mobile screens as needed */
+}
+
+
+.star-rating {
+  font-size: 1.5rem;
+}
+
+.star {
+  color: #fbbf24;
+  display: inline-block;
 }

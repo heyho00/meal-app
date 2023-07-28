@@ -1,10 +1,53 @@
 'use client'
 
-import { useState, useEffect } from 'react';
+import StarRating from '@/components/StarRating';
+import { useState, useEffect, ReactDOM } from 'react';
 
 export default function Result() {
   const [mapVisible, setMapVisible] = useState(false);
   const [location, setLocation] = useState({lat:0,lon:0})
+  const [scriptLoaded, setScriptLoaded] = useState(false);
+  const [placeInfo, setPlaceInfo] = useState(null);
+
+  const initMap = () => {
+    if (window.google && window.google.maps && mapVisible && location.lat) {
+      const map = new window.google.maps.Map(document.getElementById('map'), {
+        center: { lat: location.lat, lng: location.lon },
+        zoom: 15, // 좀 더 자세히 보기 위해 확대 수준을 조정합니다.
+      });
+
+      // 주변 식당 정보를 가져오기 위한 요청 파라미터 설정
+      const request = {
+        location: new window.google.maps.LatLng(location.lat, location.lon),
+        radius: 1000, // 주변 500m 이내의 식당을 검색합니다.
+        type: 'restaurant', // 식당으로 필터링합니다.
+      };
+
+      // PlacesService를 사용하여 주변 식당 정보를 가져옵니다.
+      const service = new window.google.maps.places.PlacesService(map);
+      service.nearbySearch(request, (results, status) => {
+        if (status === window.google.maps.places.PlacesServiceStatus.OK) {
+          if (results.length > 0) {
+            // 가능한 결과 범위 내에서 랜덤한 인덱스 선택
+            const randomIndex = Math.floor(Math.random() * results.length);
+            const place = results[randomIndex];
+            // 랜덤하게 선택된 장소에 대한 마커 생성
+            new window.google.maps.Marker({
+              position: place.geometry.location,
+              map,
+              title: place.name,
+            });
+            console.log(place,'place-----')
+            setPlaceInfo({
+              name: place.name,
+              icon: place.icon,
+              rating: place.rating,
+            });
+          }
+        }
+      });
+    }
+  };
 
   // 위치 정보 수집 권한 요청 함수
   const requestLocationPermission = () => {
@@ -73,51 +116,46 @@ export default function Result() {
     }
   }, []);
 
+
   useEffect(() => {
     // 구글 맵 API 스크립트를 동적으로 생성하여 추가합니다.
-    if(location.lat){
+    if (location.lat && !window.google) {
       const script = document.createElement('script');
-      const MAP_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAP_API_KEY
-    
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${MAP_API_KEY}&callback=initMap`;
+      const MAP_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAP_API_KEY;
+  
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${MAP_API_KEY}&libraries=places&callback=initMap`;
       script.defer = true;
       script.async = true;
 
+      script.onload = () => {
+        setScriptLoaded(true);
+      };
+  
       // 스크립트를 document의 head에 추가합니다.
       document.head.appendChild(script);
-
-      // initMap 함수를 전역으로 정의하여 API 로드 후 실행할 콜백 함수를 작성합니다.
-      window.initMap = initMap;
     }
-
   }, [location]);
 
-  const initMap = () => {
-    if (mapVisible) {
-      // 지도 초기화 및 표시할 위치 설정
-      const map = new window.google.maps.Map(document.getElementById('map'), {
-        center: { lat: location.lat, lng: location.lon }, // 이곳은 서울의 위도와 경도입니다. 원하는 위치로 수정하세요.
-        zoom: 10, // 초기 확대 수준
-      });
-
-      // 지도에 마커 추가 예시
-      const marker = new window.google.maps.Marker({
-        position: { lat: location.lat, lng: location.lon }, // 마커를 추가할 위치
-        map, // 지도 인스턴스
-        title: 'place', // 마커에 표시할 타이틀
-      });
+  useEffect(() => {
+    if (scriptLoaded && location.lat) {
+      initMap(location);
     }
-  };
+  }, [scriptLoaded, location]);
 
   return (
-    <>
+    <div className='mt-24'>
       {mapVisible ? location.lat ? ( 
+        <>
         <div className="flex flex-col items-center justify-center h-screen">
           <div className="bg-white p-8 rounded-lg shadow w-[30rem]">
-            <h1 className="text-2xl mb-4">먹자 !</h1>
+            <h1 className="text-5xl mb-4 flex"> {placeInfo?.name}!</h1>
+            <StarRating rating={placeInfo?.rating} />
             <div id="map" style={{ width: '100%', height: '500px' }}></div>
           </div>
         </div>
+        <div className="mt-4">
+      </div>
+      </>
       ):(
         <div className="flex flex-col items-center justify-center h-screen">
           <div className="bg-white p-8 rounded-lg shadow w-[30rem]">
@@ -133,6 +171,6 @@ export default function Result() {
         </div>
       )}
       <div className="h-24" />
-    </>
+    </div>
   );
 }
