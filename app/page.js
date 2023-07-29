@@ -1,8 +1,19 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useEffect } from "react";
 
 const Home = () => {
+  useEffect(() => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    if (userAgent.indexOf("kakaotalk") !== -1) {
+      // 카카오톡 브라우저인 경우, 크롬 브라우저로 리다이렉션합니다.
+      window.location.href = "googlechrome://" + window.location.href;
+    }
+  }, []);
+
   return (
     <div className="flex flex-col items-center justify-center h-screen">
       <div className="w-48 h-48 md:w-64 md:h-64 mb-4">
